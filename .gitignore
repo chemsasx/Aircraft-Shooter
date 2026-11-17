@@ -1,0 +1,26 @@
+# Quartus build outputs
+db/
+incremental_db/
+output_files/
+simulation/
+greybox_tmp/
+*.qws
+*.rpt
+*.summary
+*.smsg
+*.done
+*.jdi
+*.sld
+*.pin
+*.sof
+*.pof
+*.qarlog
+*.bak
+
+# ModelSim
+work/
+transcript
+*.wlf
+
+# macOS
+.DS_Store
