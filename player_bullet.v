@@ -34,6 +34,7 @@ wire [8:0] spawn_y;
 assign current_x = p_x;
 assign current_y = p_y;
 
+// Spawn position before coordinate clamping.
 assign relative_x = current_x + PLAYER_BULLET_RELATIVE_X;
 assign relative_y = current_y + PLAYER_BULLET_RELATIVE_Y;
 
@@ -61,6 +62,7 @@ always @(posedge CLOCK_50 or negedge resetn) begin
         p_bullet_y_3 <= 0;
     end
     else begin
+        // Check the top edge before subtracting to prevent underflow.
         if (move_tick) begin
             if (p_bullet_active_1) begin
                 if (p_bullet_y_1 < BULLET_SPEED)
@@ -133,6 +135,7 @@ always @(posedge CLOCK_50 or negedge resetn) begin
             default: state <= IDLE;
         endcase
 
+        // Hit signals take priority over other active assignments.
         if (p_bullet_rest_1)
             p_bullet_active_1 <= 0;
         if (p_bullet_rest_2)

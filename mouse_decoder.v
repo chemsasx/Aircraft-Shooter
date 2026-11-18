@@ -37,7 +37,7 @@ PS2_Controller #(
 ) mouse_controller (
     .CLOCK_50(clock),
     .reset(~resetn),
-    .the_command(8'hF4),
+    .the_command(8'hF4), // Enable mouse reporting
     .send_command(send_command),
     .PS2_CLK(PS2_CLK),
     .PS2_DAT(PS2_DAT),

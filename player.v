@@ -15,16 +15,15 @@ module player #(
     output p_bullet_fire, p_laser_fire
 );
 
-//******************************************************************************** fire
 assign p_bullet_fire = resetn && left_click && !right_down;
 assign p_laser_fire = resetn && left_click && right_down;
 
-//******************************************************************************** position
 localparam MAX_X = SCREEN_WIDTH - PLAYER_WIDTH;
 localparam MAX_Y = SCREEN_HEIGHT - PLAYER_HEIGHT;
 
 wire signed [11:0] next_x, next_y;
 
+// Zero extension before signed displacement arithmetic.
 wire signed [11:0] p_x_signed = {2'b00, p_x};
 wire signed [11:0] p_y_signed = {3'b000, p_y};
 

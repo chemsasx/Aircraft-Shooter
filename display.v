@@ -163,19 +163,30 @@ module display_datapath #(
         else if (latch) begin
             // shift: current -> previous
             prev_p_x <= curr_p_x; prev_p_y <= curr_p_y;
-            prev_p_bullet_x_1 <= curr_p_bullet_x_1; prev_p_bullet_y_1 <= curr_p_bullet_y_1;
+            prev_p_bullet_x_1 <= curr_p_bullet_x_1; 
+            prev_p_bullet_y_1 <= curr_p_bullet_y_1;
             prev_p_bullet_active_1 <= curr_p_bullet_active_1;
-            prev_p_bullet_x_2 <= curr_p_bullet_x_2; prev_p_bullet_y_2 <= curr_p_bullet_y_2;
+
+            prev_p_bullet_x_2 <= curr_p_bullet_x_2; 
+            prev_p_bullet_y_2 <= curr_p_bullet_y_2;
             prev_p_bullet_active_2 <= curr_p_bullet_active_2;
-            prev_p_bullet_x_3 <= curr_p_bullet_x_3; prev_p_bullet_y_3 <= curr_p_bullet_y_3;
+
+            prev_p_bullet_x_3 <= curr_p_bullet_x_3; 
+            prev_p_bullet_y_3 <= curr_p_bullet_y_3;
             prev_p_bullet_active_3 <= curr_p_bullet_active_3;
+
             // load: inputs -> current
             curr_p_x <= p_x; curr_p_y <= p_y;
-            curr_p_bullet_x_1 <= p_bullet_x_1; curr_p_bullet_y_1 <= p_bullet_y_1;
+            curr_p_bullet_x_1 <= p_bullet_x_1; 
+            curr_p_bullet_y_1 <= p_bullet_y_1;
             curr_p_bullet_active_1 <= p_bullet_active_1;
-            curr_p_bullet_x_2 <= p_bullet_x_2; curr_p_bullet_y_2 <= p_bullet_y_2;
+
+            curr_p_bullet_x_2 <= p_bullet_x_2; 
+            curr_p_bullet_y_2 <= p_bullet_y_2;
             curr_p_bullet_active_2 <= p_bullet_active_2;
-            curr_p_bullet_x_3 <= p_bullet_x_3; curr_p_bullet_y_3 <= p_bullet_y_3;
+
+            curr_p_bullet_x_3 <= p_bullet_x_3; 
+            curr_p_bullet_y_3 <= p_bullet_y_3;
             curr_p_bullet_active_3 <= p_bullet_active_3;
         end
     end
