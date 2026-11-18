@@ -59,9 +59,9 @@ module draw_rect_control (
 endmodule
 
 module draw_rect_datapath #(
-    parameter XW = 10,             // x bits: 0..639
-    parameter YW = 9,              // y bits: 0..479
-    parameter CW = 9,              // colour bits {RRR,GGG,BBB}
+    parameter XW = 10, // x bits: 0..639
+    parameter YW = 9, // y bits: 0..479
+    parameter CW = 9, // colour bits {RRR,GGG,BBB}
     parameter SCREEN_WIDTH  = 640,
     parameter SCREEN_HEIGHT = 480
 )(
@@ -140,20 +140,20 @@ module draw_rect #(
     parameter SCREEN_WIDTH  = 640,
     parameter SCREEN_HEIGHT = 480
 )(
-    input           clk,
-    input           resetn,
-    input           start,
-    input  [XW-1:0] x0,
-    input  [YW-1:0] y0,
-    input  [XW-1:0] w,
-    input  [YW-1:0] h,
-    input  [CW-1:0] colour_in,
+    input clk,
+    input resetn,
+    input start,
+    input [XW-1:0] x0,
+    input [YW-1:0] y0,
+    input [XW-1:0] w,
+    input [YW-1:0] h,
+    input [CW-1:0] colour_in,
 
-    output          plot,
+    output plot,
     output [XW-1:0] x,
     output [YW-1:0] y,
     output [CW-1:0] colour,
-    output          done
+    output done
 );
 
     wire load, draw_en; // control  -> datapath

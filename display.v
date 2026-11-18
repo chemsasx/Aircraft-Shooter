@@ -15,21 +15,21 @@
 module display_control (
     input  clk,
     input  resetn,
-    input  frame_tick,       // 60 Hz pulse
-    input  rect_done,        // from draw_rect: whether current rectangle finished
-    input  is_last_step,     // from datapath: this is the last rectangle of the frame
-    output clearing,         // to datapath: select the full-screen rectangle
-    output rect_start,       // to draw_rect: start the selected rectangle
-    output latch,            // to datapath: take snapshot, step = 0
-    output next_step         // to datapath: step = step + 1
+    input  frame_tick, // 60 Hz pulse
+    input  rect_done, // from draw_rect: whether current rectangle finished
+    input  is_last_step, // from datapath: this is the last rectangle of the frame
+    output clearing, // to datapath: select the full-screen rectangle
+    output rect_start, // to draw_rect: start the selected rectangle
+    output latch, // to datapath: take snapshot, step = 0
+    output next_step // to datapath: step = step + 1
 );
 
-    localparam S_CLEAR_START = 3'd0,   // start the full-screen clear
-               S_CLEAR_WAIT  = 3'd1,   // wait for the clear to finish
-               S_WAIT_FRAME  = 3'd2,   // idle until frame_tick
-               S_LATCH       = 3'd3,   // snapshot + step = 0
-               S_RECT_START  = 3'd4,   // start rectangle number "step"
-               S_RECT_WAIT   = 3'd5;   // wait for draw_rect done
+    localparam S_CLEAR_START = 3'd0, // start the full-screen clear
+               S_CLEAR_WAIT = 3'd1, // wait for the clear to finish
+               S_WAIT_FRAME = 3'd2, // idle until frame_tick
+               S_LATCH = 3'd3, // snapshot + step = 0
+               S_RECT_START = 3'd4, // start rectangle number "step"
+               S_RECT_WAIT = 3'd5; // wait for draw_rect done
 
     reg [2:0] state, next_state;
 
@@ -63,9 +63,9 @@ endmodule
 
 // display_datapath: snapshot registers, step counter, rectangle MUX
 module display_datapath #(
-    parameter XW = 10,                     // x bits: 0-639
-    parameter YW = 9,                      // y bits: 0-479
-    parameter CW = 9,                      // colour bits {RRR,GGG,BBB}
+    parameter XW = 10, // x bits: 0-639
+    parameter YW = 9, // y bits: 0-479
+    parameter CW = 9, // colour bits {RRR,GGG,BBB}
     parameter SCREEN_WIDTH  = 640,
     parameter SCREEN_HEIGHT = 480,
     parameter PLAYER_WIDTH  = 36,
@@ -84,15 +84,18 @@ module display_datapath #(
     // live game state (may change at any time)
     input [XW-1:0] p_x,
     input [YW-1:0] p_y,
+
     input [XW-1:0] p_bullet_x_1,
     input [YW-1:0] p_bullet_y_1,
-    input          p_bullet_active_1,
+    input p_bullet_active_1,
+
     input [XW-1:0] p_bullet_x_2,
     input [YW-1:0] p_bullet_y_2,
-    input          p_bullet_active_2,
+    input p_bullet_active_2,
+
     input [XW-1:0] p_bullet_x_3,
     input [YW-1:0] p_bullet_y_3,
-    input          p_bullet_active_3,
+    input p_bullet_active_3,
 
     // to display_control
     output is_last_step,
@@ -106,20 +109,20 @@ module display_datapath #(
 );
 
     // colours {RRR,GGG,BBB}
-    localparam BG_COLOUR       = 9'b000_000_000;   // black
-    localparam PLAYER_COLOUR   = 9'b000_111_111;   // cyan
+    localparam BG_COLOUR = 9'b000_000_000;   // black
+    localparam PLAYER_COLOUR = 9'b000_111_111;   // cyan
     localparam P_BULLET_COLOUR = 9'b111_111_000;   // yellow
 
     // drawing order inside one frame: erase everything first, then draw everything
-    localparam STEP_ERASE_PLAYER     = 4'd0,
+    localparam STEP_ERASE_PLAYER = 4'd0,
                STEP_ERASE_P_BULLET_1 = 4'd1,
                STEP_ERASE_P_BULLET_2 = 4'd2,
                STEP_ERASE_P_BULLET_3 = 4'd3,
-               STEP_DRAW_P_BULLET_1  = 4'd4,
-               STEP_DRAW_P_BULLET_2  = 4'd5,
-               STEP_DRAW_P_BULLET_3  = 4'd6,
-               STEP_DRAW_PLAYER      = 4'd7,   // player drawn last -> player is on top
-               LAST_STEP             = 4'd7;
+               STEP_DRAW_P_BULLET_1 = 4'd4,
+               STEP_DRAW_P_BULLET_2 = 4'd5,
+               STEP_DRAW_P_BULLET_3 = 4'd6,
+               STEP_DRAW_PLAYER = 4'd7,   // player drawn last -> player is on top
+               LAST_STEP = 4'd7;
 
     // snapshot registers
     // curr_ = what this frame will draw   (copied from the inputs on latch)
@@ -129,15 +132,15 @@ module display_datapath #(
 
     reg [XW-1:0] curr_p_bullet_x_1, prev_p_bullet_x_1;
     reg [YW-1:0] curr_p_bullet_y_1, prev_p_bullet_y_1;
-    reg          curr_p_bullet_active_1, prev_p_bullet_active_1;
+    reg curr_p_bullet_active_1, prev_p_bullet_active_1;
 
     reg [XW-1:0] curr_p_bullet_x_2, prev_p_bullet_x_2;
     reg [YW-1:0] curr_p_bullet_y_2, prev_p_bullet_y_2;
-    reg          curr_p_bullet_active_2, prev_p_bullet_active_2;
+    reg curr_p_bullet_active_2, prev_p_bullet_active_2;
 
     reg [XW-1:0] curr_p_bullet_x_3, prev_p_bullet_x_3;
     reg [YW-1:0] curr_p_bullet_y_3, prev_p_bullet_y_3;
-    reg          curr_p_bullet_active_3, prev_p_bullet_active_3;
+    reg curr_p_bullet_active_3, prev_p_bullet_active_3;
 
     always @(posedge clk) begin
 
@@ -283,15 +286,15 @@ module display #(
     input [YW-1:0] p_y,
     input [XW-1:0] p_bullet_x_1,
     input [YW-1:0] p_bullet_y_1,
-    input          p_bullet_active_1,
+    input p_bullet_active_1,
     input [XW-1:0] p_bullet_x_2,
     input [YW-1:0] p_bullet_y_2,
-    input          p_bullet_active_2,
+    input p_bullet_active_2,
     input [XW-1:0] p_bullet_x_3,
     input [YW-1:0] p_bullet_y_3,
-    input          p_bullet_active_3,
+    input p_bullet_active_3,
 
-    output          vga_plot,
+    output vga_plot,
     output [XW-1:0] vga_x,
     output [YW-1:0] vga_y,
     output [CW-1:0] vga_colour
