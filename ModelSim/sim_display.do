@@ -1,7 +1,7 @@
 # run in ModelSim:   cd to this ModelSim folder, then type   do sim_display.do
 quit -sim
 vlib work
-vlog ../draw_rect.v ../display.v tb_display.v
+vlog ../draw_rect.v ../player_sprite_rom.v ../display.v tb_display.v
 vsim work.tb_display
 
 add wave -radix unsigned /tb_display/clk /tb_display/resetn /tb_display/frame_tick
@@ -14,7 +14,9 @@ add wave -radix unsigned /tb_display/dut/u_control/state
 add wave -radix unsigned /tb_display/dut/clearing /tb_display/dut/latch /tb_display/dut/rect_start /tb_display/dut/rect_done
 add wave -divider datapath
 add wave -radix unsigned /tb_display/dut/u_datapath/step
-add wave -radix unsigned /tb_display/dut/rect_x0 /tb_display/dut/rect_y0 /tb_display/dut/rect_w /tb_display/dut/rect_h
+add wave -radix unsigned /tb_display/dut/rect_x0 /tb_display/dut/rect_y0 /tb_display/dut/rect_w /tb_display/dut/rect_h /tb_display/dut/rect_use_sprite
+add wave -radix unsigned /tb_display/dut/sprite_addr
+add wave -radix hex      /tb_display/dut/sprite_colour
 add wave -radix binary   /tb_display/dut/rect_colour
 add wave -divider to_vga
 add wave -radix unsigned /tb_display/vga_plot /tb_display/vga_x /tb_display/vga_y

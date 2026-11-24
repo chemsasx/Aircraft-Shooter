@@ -24,12 +24,13 @@ module top #(
     parameter YW = 9,// y position digits
     parameter CW = 9,// RGB
 
-    parameter PLAYER_WIDTH = 36,
-    parameter PLAYER_HEIGHT = 48,
+    // player = the picture in MIF/player_37x66.hex (drawn by display through player_sprite_rom)
+    parameter PLAYER_WIDTH = 37,
+    parameter PLAYER_HEIGHT = 66,
 
     parameter PLAYER_BULLET_WIDTH = 4,
     parameter PLAYER_BULLET_HEIGHT = 8,
-    parameter integer PLAYER_BULLET_RELATIVE_X = 16,
+    parameter integer PLAYER_BULLET_RELATIVE_X = 16, // (37 - 4) / 2: bullet leaves from the nose (column 18)
     parameter integer PLAYER_BULLET_RELATIVE_Y = -8,
     parameter BULLET_SPEED = 4,
     parameter BURST_GAP_TICKS = 6,

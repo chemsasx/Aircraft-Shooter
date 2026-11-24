@@ -12,6 +12,15 @@
 
 // to draw a w*h rectangle, takes w*h+2 clock
 
+// sprite mode (use_sprite = 1, used for the player picture):
+//   the colour of each pixel comes from an image ROM instead of colour_in.
+//   sprite_addr counts 0, 1, 2, ... one per pixel, in the same order the
+//   pixels are drawn (left to right, top to bottom), so pixel number k of the
+//   rectangle reads ROM word k. w must equal the picture width.
+//   Pixels with colour TRANSPARENT are not plotted (the background stays).
+//   The ROM needs one clock to answer, so plot / x / y are delayed by one
+//   register stage to line up with the ROM colour (for every rectangle).
+
 // sizes are parameters (passed down from top -> display -> draw_rect),
 // the defaults below are our 640x480, 9-bit colour screen
 
@@ -63,7 +72,9 @@ module draw_rect_datapath #(
     parameter YW = 9, // y bits: 0..479
     parameter CW = 9, // colour bits {RRR,GGG,BBB}
     parameter SCREEN_WIDTH  = 640,
-    parameter SCREEN_HEIGHT = 480
+    parameter SCREEN_HEIGHT = 480,
+    parameter SPRITE_AW = 12, // sprite ROM address bits (37*66 = 2442 words < 4096)
+    parameter TRANSPARENT = 9'b111_000_111 // sprite colour that is not drawn
 )(
     input clk,
     input resetn,
@@ -74,20 +85,24 @@ module draw_rect_datapath #(
     input [XW-1:0] w, // width  (number of columns)
     input [YW-1:0] h, // height (number of rows)
     input [CW-1:0] colour_in,
+    input use_sprite, // 1 = take the colour from the sprite ROM
+    input [CW-1:0] sprite_colour, // from the sprite ROM (one clock after sprite_addr)
 
     output last_col, // to control
     output last_row, // to control
     output empty, // to control
 
+    output reg [SPRITE_AW-1:0] sprite_addr, // to the sprite ROM
     output plot, // to vga_adapter .write
-    output [XW-1:0] x, // to vga_adapter .x
-    output [YW-1:0] y, // to vga_adapter .y
+    output reg [XW-1:0] x, // to vga_adapter .x
+    output reg [YW-1:0] y, // to vga_adapter .y
     output [CW-1:0] colour // to vga_adapter .color
 );
 
     reg [XW-1:0] x0_r, w_r;
     reg [YW-1:0] y0_r, h_r;
     reg [CW-1:0] colour_r;
+    reg use_sprite_r;
 
     reg [XW-1:0] cx; // current col
     reg [YW-1:0] cy; // current row
@@ -95,12 +110,12 @@ module draw_rect_datapath #(
     always @(posedge clk) begin
         if (!resetn) begin
         // initialize the parameters
-            x0_r <= 0;  y0_r <= 0;  w_r <= 0;  h_r <= 0;  colour_r <= 0;
-            cx   <= 0;  cy   <= 0;
+            x0_r <= 0;  y0_r <= 0;  w_r <= 0;  h_r <= 0;  colour_r <= 0;  use_sprite_r <= 0;
+            cx   <= 0;  cy   <= 0;  sprite_addr <= 0;
         end
         else if (load) begin // load = 1, drawing a new rectangle is allowed
-            x0_r <= x0;  y0_r <= y0;  w_r <= w;  h_r <= h;  colour_r <= colour_in;
-            cx   <= 0;   cy   <= 0;
+            x0_r <= x0;  y0_r <= y0;  w_r <= w;  h_r <= h;  colour_r <= colour_in;  use_sprite_r <= use_sprite;
+            cx   <= 0;   cy   <= 0;   sprite_addr <= 0;
         end
         else if (draw_en) begin // draw one pixel per clock
         // left to right, top to bottom
@@ -111,6 +126,7 @@ module draw_rect_datapath #(
             end
             else
                 cx <= cx + 1'b1;
+            sprite_addr <= sprite_addr + 1'b1; // next pixel = next ROM word
         end
     end
 
@@ -125,10 +141,23 @@ module draw_rect_datapath #(
 
     wire in_screen = (x_sum < SCREEN_WIDTH) && (y_sum < SCREEN_HEIGHT); // off-screen pixels are skipped
 
-    assign x = x_sum[XW-1:0];
-    assign y = y_sum[YW-1:0];
-    assign colour = colour_r;
-    assign plot = draw_en && in_screen; // when plot = 1, this pixel is allowed to draw
+    // delay register: wait one clock for the ROM, so x, y, plot and the ROM colour belong to the same pixel
+    reg plot_d;
+    always @(posedge clk) begin
+        if (!resetn) begin
+            plot_d <= 0;  x <= 0;  y <= 0;
+        end
+        else begin
+            plot_d <= draw_en && in_screen; // this pixel is inside the screen
+            x <= x_sum[XW-1:0];
+            y <= y_sum[YW-1:0];
+        end
+    end
+
+    wire transparent = use_sprite_r && (sprite_colour == TRANSPARENT); // comparator
+
+    assign colour = use_sprite_r ? sprite_colour : colour_r; // 2-to-1 MUX
+    assign plot = plot_d && !transparent; // when plot = 1, this pixel is allowed to draw
 
 endmodule
 
@@ -138,7 +167,8 @@ module draw_rect #(
     parameter YW = 9,
     parameter CW = 9,
     parameter SCREEN_WIDTH  = 640,
-    parameter SCREEN_HEIGHT = 480
+    parameter SCREEN_HEIGHT = 480,
+    parameter SPRITE_AW = 12
 )(
     input clk,
     input resetn,
@@ -148,7 +178,10 @@ module draw_rect #(
     input [XW-1:0] w,
     input [YW-1:0] h,
     input [CW-1:0] colour_in,
+    input use_sprite,
+    input [CW-1:0] sprite_colour,
 
+    output [SPRITE_AW-1:0] sprite_addr,
     output plot,
     output [XW-1:0] x,
     output [YW-1:0] y,
@@ -168,11 +201,14 @@ module draw_rect #(
     // pass the parameters one level further down
     draw_rect_datapath #(
         .XW(XW), .YW(YW), .CW(CW),
-        .SCREEN_WIDTH(SCREEN_WIDTH), .SCREEN_HEIGHT(SCREEN_HEIGHT)
+        .SCREEN_WIDTH(SCREEN_WIDTH), .SCREEN_HEIGHT(SCREEN_HEIGHT),
+        .SPRITE_AW(SPRITE_AW)
     ) u_datapath (
         .clk(clk), .resetn(resetn), .load(load), .draw_en(draw_en),
         .x0(x0), .y0(y0), .w(w), .h(h), .colour_in(colour_in),
+        .use_sprite(use_sprite), .sprite_colour(sprite_colour),
         .last_col(last_col), .last_row(last_row), .empty(empty),
+        .sprite_addr(sprite_addr),
         .plot(plot), .x(x), .y(y), .colour(colour)
     );
 

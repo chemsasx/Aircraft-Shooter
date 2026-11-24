@@ -4,11 +4,20 @@
 //   MAX_HP = 2, each HP point = 2 px, bar height 1
 //   -> bars are 4 px wide, start at x = (32 - 4) / 2 = 14,
 //      boss bar at y = 4, player bar at y = 24 - 1 - 4 = 19
+// The player picture is a small 4 x 4 test picture, tb_player_4x4.hex:
+//      T W W T        T = 1c7 transparent (not drawn)
+//      W C C W        W = 1ff white
+//      W C C W        C = 03f cyan
+//      T W W T
+//   so drawing the player prints 12 pixels: the 4 corners are skipped.
 // frame_tick is given by hand (one 1-clock pulse per "frame").
+// Every pixel comes out of draw_rect one clock after it is counted
+// (the picture ROM needs one clock), so the last pixel of a rectangle
+// is printed in the same clock as "done".
 // Only bullet 1 of each side is used, bullets 2 and 3 stay inactive.
 //
 // Colours in the Transcript:
-// 000000000 = black (erase)      000111111 = cyan    (player)
+// 000000000 = black (erase)      000111111 = cyan / 111111111 = white (player picture)
 // 111111000 = yellow (p bullet)  111000111 = magenta (boss)
 // 111100000 = orange (b bullet)  111000000 = red     (boss HP left)
 // 000111000 = green (player HP)  010010010 = grey    (HP lost)
@@ -17,7 +26,7 @@
 //   after reset : the whole 32x24 screen is cleared (not printed, 768 pixels)
 //   FRAME 1 : player at (5,10), boss at (20,8), both HP = 2
 //             -> erase old player (0,0) and old boss (0,0) (black),
-//                draw boss, draw player, boss bar 4 px red, player bar 4 px green
+//                draw boss, draw player picture (12 px), boss bar 4 px red, player bar 4 px green
 //   FRAME 2 : player moves to (6,10), player bullet at (7,5), boss bullet at (22,12)
 //             -> erase player (5,10), boss NOT erased (did not move),
 //                draw boss, p bullet (7,5)(7,6), b bullet (22,12)(22,13), player, bars
@@ -53,7 +62,8 @@ module tb_display;
         .PLAYER_BULLET_WIDTH(1),   .PLAYER_BULLET_HEIGHT(2),
         .BOSS_WIDTH(4),            .BOSS_HEIGHT(2),
         .BOSS_BULLET_WIDTH(1),     .BOSS_BULLET_HEIGHT(2),
-        .HP_W(2), .MAX_HP(2), .HP_UNIT_W(2), .BAR_H(1)
+        .HP_W(2), .MAX_HP(2), .HP_UNIT_W(2), .BAR_H(1),
+        .SPRITE_AW(4), .PLAYER_SPRITE_FILE("tb_player_4x4.hex")   // 4 x 4 = 16 words
     ) dut (
         .clk(clk), .resetn(resetn), .frame_tick(frame_tick),
         .p_x(p_x), .p_y(p_y),

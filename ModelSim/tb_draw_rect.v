@@ -16,6 +16,7 @@ module tb_draw_rect;
     draw_rect dut (
         .clk(clk), .resetn(resetn), .start(start),
         .x0(x0), .y0(y0), .w(w), .h(h), .colour_in(colour_in),
+        .use_sprite(1'b0), .sprite_colour(9'd0), .sprite_addr(),   // normal rectangles only
         .plot(plot), .x(x), .y(y), .colour(colour), .done(done)
     );
 
@@ -24,6 +25,8 @@ module tb_draw_rect;
     always #10 clk = ~clk;
 
     // print every pixel and every done
+    // (pixels come out one clock after they are counted, so the last pixel
+    //  is printed in the same clock as done)
     always @(posedge clk) begin
         if (plot) $display("%t  plot (%0d, %0d)", $time, x, y);
         if (done) $display("%t  done", $time);
