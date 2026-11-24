@@ -39,6 +39,10 @@ set_global_assignment -name VERILOG_FILE PS2/PS2_Controller.v
 set_global_assignment -name VERILOG_FILE mouse_decoder.v
 set_global_assignment -name VERILOG_FILE player.v
 set_global_assignment -name VERILOG_FILE player_bullet.v
+set_global_assignment -name VERILOG_FILE boss.v
+set_global_assignment -name VERILOG_FILE boss_bullet.v
+set_global_assignment -name VERILOG_FILE damage_detect.v
+set_global_assignment -name VERILOG_FILE hp_update.v
 set_global_assignment -name VERILOG_FILE frame_tick.v
 set_global_assignment -name VERILOG_FILE draw_rect.v
 set_global_assignment -name VERILOG_FILE display.v

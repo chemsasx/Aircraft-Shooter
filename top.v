@@ -1,5 +1,24 @@
+// ============================================================================
+// top  -  board top level for Aircraft Shooter (M2 version)
+// ----------------------------------------------------------------------------
+//   mouse -> player -> player_bullet --+
+//   boss  -> boss_bullet --------------+-> damage_detect -> hp_update
+//                                      |                      |
+//                                      +------> display <-----+ -> vga_adapter
+//
+//   KEY[0]      reset (active-low)
+//   mouse       move = move the player, left click = fire a burst of 3 bullets
+//   LEDR[0]     right mouse button held
+//   LEDR[3:1]   player bullet 3..1 active
+//   LEDR[6:4]   boss bullet 3..1 active
+//   LEDR[8]     boss HP = 0
+//   LEDR[9]     player HP = 0
+//
+// All game constants live here and are passed down with #( ).
+// Values follow player.v, player_bullet.v, boss.v and boss_bullet.v.
+// ============================================================================
 module top #(
-    parameter SCREEN_WIDTH = 640,// change to 320*240?
+    parameter SCREEN_WIDTH = 640,
     parameter SCREEN_HEIGHT = 480,
     parameter XW = 10,// x position digits
     parameter YW = 9,// y position digits
@@ -14,6 +33,20 @@ module top #(
     parameter integer PLAYER_BULLET_RELATIVE_Y = -8,
     parameter BULLET_SPEED = 4,
     parameter BURST_GAP_TICKS = 6,
+
+    // ---- boss (values from boss.v / boss_bullet.v) ----
+    parameter BOSS_WIDTH = 64,
+    parameter BOSS_HEIGHT = 48,
+    parameter BOSS_Y = 16,                     // boss.v default is 0; 16 leaves room for the boss HP bar (y = 4..11)
+    parameter BOSS_SPEED = 2,                  // pixels per frame
+    parameter BOSS_FIRE_CYCLES = 100000000,    // one burst every 2 s
+    parameter BOSS_BULLET_WIDTH = 4,
+    parameter BOSS_BULLET_HEIGHT = 8,
+    parameter BOSS_BULLET_SPEED = 8,           // steps per frame
+
+    // ---- HP ----
+    parameter HP_W = 5,                        // 0..16 needs 5 bits
+    parameter MAX_HP = 16,
 
     parameter FRAME_CYCLES = 833333, // 60 Hz at CLOCK_50, 60fps
     parameter COUNT_W = 20
@@ -58,9 +91,10 @@ mouse_decoder m (
 wire move_en;
 assign move_en = (dx != 9'sd0) || (dy != 9'sd0);
 
+// ---------------------------------------------------------------- player
 wire [XW-1:0] p_x;
 wire [YW-1:0] p_y;
-wire p_bullet_fire, p_laser_fire;
+wire p_bullet_fire, p_laser_fire; // laser is not used
 
 player #(
     .SCREEN_WIDTH(SCREEN_WIDTH),
@@ -81,9 +115,11 @@ player #(
     .p_laser_fire(p_laser_fire)
 );
 
+// ---------------------------------------------------------------- player bullets
 wire p_bullet_active_1, p_bullet_active_2, p_bullet_active_3;
 wire [XW-1:0] p_bullet_x_1, p_bullet_x_2, p_bullet_x_3;
 wire [YW-1:0] p_bullet_y_1, p_bullet_y_2, p_bullet_y_3;
+wire p_bullet_rest_1, p_bullet_rest_2, p_bullet_rest_3; // from damage_detect
 
 player_bullet #(
     .PLAYER_BULLET_RELATIVE_X(PLAYER_BULLET_RELATIVE_X),
@@ -99,9 +135,9 @@ player_bullet #(
     .p_bullet_fire(p_bullet_fire),
     .p_x(p_x),
     .p_y(p_y),
-    .p_bullet_rest_1(1'b0), // not connected yet
-    .p_bullet_rest_2(1'b0),
-    .p_bullet_rest_3(1'b0),
+    .p_bullet_rest_1(p_bullet_rest_1),
+    .p_bullet_rest_2(p_bullet_rest_2),
+    .p_bullet_rest_3(p_bullet_rest_3),
     .p_bullet_active_1(p_bullet_active_1),
     .p_bullet_active_2(p_bullet_active_2),
     .p_bullet_active_3(p_bullet_active_3),
@@ -113,6 +149,107 @@ player_bullet #(
     .p_bullet_y_3(p_bullet_y_3)
 );
 
+// ---------------------------------------------------------------- boss
+wire [XW-1:0] b_x;
+wire [YW-1:0] b_y;
+wire b_bullet_fire;
+
+boss #(
+    .SCREEN_WIDTH(SCREEN_WIDTH),
+    .BOSS_WIDTH(BOSS_WIDTH),
+    .BOSS_Y(BOSS_Y),
+    .BOSS_SPEED(BOSS_SPEED),
+    .MOVE_CYCLES(FRAME_CYCLES),
+    .FIRE_CYCLES(BOSS_FIRE_CYCLES)
+) b (
+    .CLOCK_50(CLOCK_50),
+    .resetn(resetn),
+    .b_x(b_x),
+    .b_y(b_y),
+    .b_bullet_fire(b_bullet_fire)
+);
+
+// ---------------------------------------------------------------- boss bullets
+wire b_bullet_active_1, b_bullet_active_2, b_bullet_active_3;
+wire [XW-1:0] b_bullet_x_1, b_bullet_x_2, b_bullet_x_3;
+wire [YW-1:0] b_bullet_y_1, b_bullet_y_2, b_bullet_y_3;
+wire b_bullet_rest_1, b_bullet_rest_2, b_bullet_rest_3; // from damage_detect
+
+boss_bullet #(
+    .SCREEN_WIDTH(SCREEN_WIDTH),
+    .SCREEN_HEIGHT(SCREEN_HEIGHT),
+    .BOSS_WIDTH(BOSS_WIDTH),
+    .BOSS_HEIGHT(BOSS_HEIGHT),
+    .PLAYER_WIDTH(PLAYER_WIDTH),
+    .PLAYER_HEIGHT(PLAYER_HEIGHT),
+    .BOSS_BULLET_WIDTH(BOSS_BULLET_WIDTH),
+    .BOSS_BULLET_HEIGHT(BOSS_BULLET_HEIGHT),
+    .BULLET_SPEED(BOSS_BULLET_SPEED),
+    .MOVE_CYCLES(FRAME_CYCLES),
+    .BURST_GAP_TICKS(BURST_GAP_TICKS)
+) b_bullet (
+    .CLOCK_50(CLOCK_50),
+    .resetn(resetn),
+    .b_bullet_fire(b_bullet_fire),
+    .b_x(b_x),
+    .p_x(p_x),
+    .b_y(b_y),
+    .p_y(p_y),
+    .b_bullet_rest_1(b_bullet_rest_1),
+    .b_bullet_rest_2(b_bullet_rest_2),
+    .b_bullet_rest_3(b_bullet_rest_3),
+    .b_bullet_active_1(b_bullet_active_1),
+    .b_bullet_active_2(b_bullet_active_2),
+    .b_bullet_active_3(b_bullet_active_3),
+    .b_bullet_x_1(b_bullet_x_1),
+    .b_bullet_x_2(b_bullet_x_2),
+    .b_bullet_x_3(b_bullet_x_3),
+    .b_bullet_y_1(b_bullet_y_1),
+    .b_bullet_y_2(b_bullet_y_2),
+    .b_bullet_y_3(b_bullet_y_3)
+);
+
+// ---------------------------------------------------------------- damage + HP
+wire p_damage, b_damage;
+wire [HP_W-1:0] p_hp, b_hp;
+
+damage_detect #(
+    .XW(XW), .YW(YW),
+    .PLAYER_WIDTH(PLAYER_WIDTH), .PLAYER_HEIGHT(PLAYER_HEIGHT),
+    .BOSS_WIDTH(BOSS_WIDTH), .BOSS_HEIGHT(BOSS_HEIGHT),
+    .PLAYER_BULLET_WIDTH(PLAYER_BULLET_WIDTH), .PLAYER_BULLET_HEIGHT(PLAYER_BULLET_HEIGHT),
+    .BOSS_BULLET_WIDTH(BOSS_BULLET_WIDTH), .BOSS_BULLET_HEIGHT(BOSS_BULLET_HEIGHT)
+) u_damage (
+    .clk(CLOCK_50),
+    .resetn(resetn),
+    .p_x(p_x), .p_y(p_y),
+    .b_x(b_x), .b_y(b_y),
+    .p_bullet_x_1(p_bullet_x_1), .p_bullet_x_2(p_bullet_x_2), .p_bullet_x_3(p_bullet_x_3),
+    .p_bullet_y_1(p_bullet_y_1), .p_bullet_y_2(p_bullet_y_2), .p_bullet_y_3(p_bullet_y_3),
+    .p_bullet_active_1(p_bullet_active_1), .p_bullet_active_2(p_bullet_active_2), .p_bullet_active_3(p_bullet_active_3),
+    .b_bullet_x_1(b_bullet_x_1), .b_bullet_x_2(b_bullet_x_2), .b_bullet_x_3(b_bullet_x_3),
+    .b_bullet_y_1(b_bullet_y_1), .b_bullet_y_2(b_bullet_y_2), .b_bullet_y_3(b_bullet_y_3),
+    .b_bullet_active_1(b_bullet_active_1), .b_bullet_active_2(b_bullet_active_2), .b_bullet_active_3(b_bullet_active_3),
+    .b_damage(b_damage),
+    .p_bullet_rest_1(p_bullet_rest_1), .p_bullet_rest_2(p_bullet_rest_2), .p_bullet_rest_3(p_bullet_rest_3),
+    .p_damage(p_damage),
+    .b_bullet_rest_1(b_bullet_rest_1), .b_bullet_rest_2(b_bullet_rest_2), .b_bullet_rest_3(b_bullet_rest_3)
+);
+
+hp_update #(
+    .HP_W(HP_W),
+    .MAX_HP(MAX_HP)
+) u_hp (
+    .clk(CLOCK_50),
+    .resetn(resetn),
+    .restart(1'b0), // KEY[0] reset already refills HP; game_fsm can use this later
+    .p_damage(p_damage),
+    .b_damage(b_damage),
+    .p_hp(p_hp),
+    .b_hp(b_hp)
+);
+
+// ---------------------------------------------------------------- display + VGA
 wire vga_plot;
 wire [XW-1:0] vga_x;
 wire [YW-1:0] vga_y;
@@ -127,22 +264,29 @@ display #(
     .PLAYER_WIDTH(PLAYER_WIDTH),
     .PLAYER_HEIGHT(PLAYER_HEIGHT),
     .PLAYER_BULLET_WIDTH(PLAYER_BULLET_WIDTH),
-    .PLAYER_BULLET_HEIGHT(PLAYER_BULLET_HEIGHT)
+    .PLAYER_BULLET_HEIGHT(PLAYER_BULLET_HEIGHT),
+    .BOSS_WIDTH(BOSS_WIDTH),
+    .BOSS_HEIGHT(BOSS_HEIGHT),
+    .BOSS_BULLET_WIDTH(BOSS_BULLET_WIDTH),
+    .BOSS_BULLET_HEIGHT(BOSS_BULLET_HEIGHT),
+    .HP_W(HP_W),
+    .MAX_HP(MAX_HP)
 ) u_display (
     .clk(CLOCK_50),
     .resetn(resetn),
     .frame_tick(frame_tick),
     .p_x(p_x),
     .p_y(p_y),
-    .p_bullet_x_1(p_bullet_x_1),
-    .p_bullet_y_1(p_bullet_y_1),
-    .p_bullet_active_1(p_bullet_active_1),
-    .p_bullet_x_2(p_bullet_x_2),
-    .p_bullet_y_2(p_bullet_y_2),
-    .p_bullet_active_2(p_bullet_active_2),
-    .p_bullet_x_3(p_bullet_x_3),
-    .p_bullet_y_3(p_bullet_y_3),
-    .p_bullet_active_3(p_bullet_active_3),
+    .p_bullet_x_1(p_bullet_x_1), .p_bullet_y_1(p_bullet_y_1), .p_bullet_active_1(p_bullet_active_1),
+    .p_bullet_x_2(p_bullet_x_2), .p_bullet_y_2(p_bullet_y_2), .p_bullet_active_2(p_bullet_active_2),
+    .p_bullet_x_3(p_bullet_x_3), .p_bullet_y_3(p_bullet_y_3), .p_bullet_active_3(p_bullet_active_3),
+    .b_x(b_x),
+    .b_y(b_y),
+    .b_bullet_x_1(b_bullet_x_1), .b_bullet_y_1(b_bullet_y_1), .b_bullet_active_1(b_bullet_active_1),
+    .b_bullet_x_2(b_bullet_x_2), .b_bullet_y_2(b_bullet_y_2), .b_bullet_active_2(b_bullet_active_2),
+    .b_bullet_x_3(b_bullet_x_3), .b_bullet_y_3(b_bullet_y_3), .b_bullet_active_3(b_bullet_active_3),
+    .p_hp(p_hp),
+    .b_hp(b_hp),
     .vga_plot(vga_plot),
     .vga_x(vga_x),
     .vga_y(vga_y),
@@ -174,6 +318,11 @@ assign LEDR[0] = right_down;
 assign LEDR[1] = p_bullet_active_1;
 assign LEDR[2] = p_bullet_active_2;
 assign LEDR[3] = p_bullet_active_3;
-assign LEDR[9:4] = 6'b0;
+assign LEDR[4] = b_bullet_active_1;
+assign LEDR[5] = b_bullet_active_2;
+assign LEDR[6] = b_bullet_active_3;
+assign LEDR[7] = 1'b0;
+assign LEDR[8] = (b_hp == 0);
+assign LEDR[9] = (p_hp == 0);
 
 endmodule

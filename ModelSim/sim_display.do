@@ -5,8 +5,10 @@ vlog ../draw_rect.v ../display.v tb_display.v
 vsim work.tb_display
 
 add wave -radix unsigned /tb_display/clk /tb_display/resetn /tb_display/frame_tick
-add wave -radix unsigned /tb_display/p_x /tb_display/p_y
-add wave -radix unsigned /tb_display/p_bullet_x_1 /tb_display/p_bullet_y_1 /tb_display/p_bullet_active_1
+add wave -radix unsigned /tb_display/p_x /tb_display/p_y /tb_display/b_x /tb_display/b_y
+add wave -radix unsigned /tb_display/p_bullet_y_1 /tb_display/p_bullet_active_1
+add wave -radix unsigned /tb_display/b_bullet_y_1 /tb_display/b_bullet_active_1
+add wave -radix unsigned /tb_display/p_hp /tb_display/b_hp
 add wave -divider control
 add wave -radix unsigned /tb_display/dut/u_control/state
 add wave -radix unsigned /tb_display/dut/clearing /tb_display/dut/latch /tb_display/dut/rect_start /tb_display/dut/rect_done

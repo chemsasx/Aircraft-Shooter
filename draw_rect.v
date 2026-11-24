@@ -29,9 +29,9 @@ module draw_rect_control (
     output done // finished, done = 1
 );
 
-    localparam S_IDLE = 2'd0,   // waiting for start
-               S_DRAW = 2'd1,   // one pixel per clock
-               S_DONE = 2'd2;   // finished, stay here for one clock
+    localparam S_IDLE = 2'd0, // waiting for start
+               S_DRAW = 2'd1, // one pixel per clock
+               S_DONE = 2'd2; // finished, stay here for one clock
 
     reg [1:0] state, next_state;
 
@@ -125,10 +125,10 @@ module draw_rect_datapath #(
 
     wire in_screen = (x_sum < SCREEN_WIDTH) && (y_sum < SCREEN_HEIGHT); // off-screen pixels are skipped
 
-    assign x      = x_sum[XW-1:0];
-    assign y      = y_sum[YW-1:0];
+    assign x = x_sum[XW-1:0];
+    assign y = y_sum[YW-1:0];
     assign colour = colour_r;
-    assign plot   = draw_en && in_screen; // when plot = 1, this pixel is allowed to draw
+    assign plot = draw_en && in_screen; // when plot = 1, this pixel is allowed to draw
 
 endmodule
 

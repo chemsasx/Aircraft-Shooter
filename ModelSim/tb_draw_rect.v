@@ -1,13 +1,3 @@
-// ============================================================================
-// tb_draw_rect.v  -  testbench for draw_rect
-// ----------------------------------------------------------------------------
-// 3 tests, every plotted pixel is printed in the Transcript:
-//   TEST 1: 4 x 3 rectangle at (10, 20)   -> 12 pixels, row by row, then done
-//   TEST 2: empty rectangle (w = 0)       -> no pixels, only done
-//   TEST 3: 4 x 2 at (638, 100)           -> only x = 638, 639 are drawn
-//                                            (640, 641 are off the 640-wide screen)
-// Inputs change on the FALLING edge, so they are stable at the rising edge.
-// ============================================================================
 `timescale 1ns / 1ns
 
 module tb_draw_rect;
