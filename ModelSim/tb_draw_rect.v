@@ -16,8 +16,8 @@ module tb_draw_rect;
     draw_rect dut (
         .clk(clk), .resetn(resetn), .start(start),
         .x0(x0), .y0(y0), .w(w), .h(h), .colour_in(colour_in),
-        .use_sprite(1'b0), .sprite_base(14'd0),                   // normal rectangles only
-        .sprite_colour(9'd0), .sprite_addr(),
+        .use_picture(1'b0), .picture_base(14'd0),                   // normal rectangles only
+        .picture_colour(9'd0), .picture_addr(),
         .plot(plot), .x(x), .y(y), .colour(colour), .done(done)
     );
 

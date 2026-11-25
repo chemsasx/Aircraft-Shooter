@@ -24,7 +24,7 @@ module top #(
     parameter YW = 9,// y position digits
     parameter CW = 9,// RGB
 
-    // player = the picture at the start of MIF/sprites.hex (drawn by display through the sprite ROM)
+    // player = the picture at the start of MIF/pictures.hex (drawn by display through the picture ROM)
     parameter PLAYER_WIDTH = 37,
     parameter PLAYER_HEIGHT = 66,
 
@@ -36,7 +36,7 @@ module top #(
     parameter BURST_GAP_TICKS = 6,
 
     // ---- boss (values from boss.v / boss_bullet.v) ----
-    parameter BOSS_WIDTH = 112,                // boss = the picture in MIF/sprites.hex (after the player)
+    parameter BOSS_WIDTH = 112,                // boss = the picture in MIF/pictures.hex (after the player)
     parameter BOSS_HEIGHT = 117,
     parameter BOSS_Y = 16,                     // boss.v default is 0; 16 leaves room for the boss HP bar (y = 4..11)
     parameter BOSS_SPEED = 2,                  // pixels per frame

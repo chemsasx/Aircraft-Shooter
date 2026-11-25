@@ -6,7 +6,7 @@
 // rect_start: begin to draw the rectangle
 // rect_wait: wait until rect_done = 1
 
-// current version draws: player and boss (pictures from the sprite ROM),
+// current version draws: player and boss (pictures from the picture ROM),
 // 3 player bullets, 3 boss bullets, boss HP bar (top) and player HP bar (bottom).
 // The background is black: erasing paints black rectangles.
 // sizes are parameters, passed down from top -> display -> datapath / draw_rect
@@ -81,7 +81,7 @@ module display_datapath #(
     parameter MAX_HP = 16,
     parameter HP_UNIT_W = 16, // bar pixels per HP point
     parameter BAR_H = 8, // bar height
-    parameter SPRITE_AW = 14 // sprite ROM address bits
+    parameter PICTURE_AW = 14 // picture ROM address bits
 )(
     input clk,
     input resetn,
@@ -134,8 +134,8 @@ module display_datapath #(
     output reg [XW-1:0] rect_w,
     output reg [YW-1:0] rect_h,
     output reg [CW-1:0] rect_colour,
-    output reg rect_use_sprite, // 1 = colour comes from the sprite ROM (player / boss picture)
-    output reg [SPRITE_AW-1:0] rect_sprite_base // first sprite ROM word of the picture
+    output reg rect_use_picture, // 1 = colour comes from the picture ROM (player / boss picture)
+    output reg [PICTURE_AW-1:0] rect_picture_base // first picture ROM word of the picture
 );
 
     // colours {RRR,GGG,BBB}
@@ -146,9 +146,9 @@ module display_datapath #(
     localparam B_HP_COLOUR = 9'b111_000_000;   // red   (boss HP left)
     localparam HP_LOST_COLOUR = 9'b010_010_010;   // dark grey (HP already lost)
 
-    // where each picture starts in the sprite ROM (MIF/sprites.hex)
-    localparam PLAYER_SPRITE_BASE = 0;
-    localparam BOSS_SPRITE_BASE = PLAYER_WIDTH * PLAYER_HEIGHT; // boss words come after the player
+    // where each picture starts in the picture ROM (MIF/pictures.hex)
+    localparam PLAYER_PICTURE_BASE = 0;
+    localparam BOSS_PICTURE_BASE = PLAYER_WIDTH * PLAYER_HEIGHT; // boss words come after the player
 
     // HP bar geometry
     // each HP point = HP_UNIT_W (16) px, full bar = 16 * 16 = 256 px, centred: (640 - 256) / 2 = 192
@@ -359,7 +359,7 @@ module display_datapath #(
     // width 0 = "skip": draw_rect sees an empty rectangle and is done at once
     always @(*) begin
         rect_x0 = 0;  rect_y0 = 0;  rect_w = 0;  rect_h = 0;  rect_colour = BG_COLOUR; // default value
-        rect_use_sprite = 0;  rect_sprite_base = 0; // only the player and the boss use pictures
+        rect_use_picture = 0;  rect_picture_base = 0; // only the player and the boss use pictures
 
         if (clearing) begin // clearing = 1, clear the whole screen using one black block
             rect_w = SCREEN_WIDTH;
@@ -406,7 +406,7 @@ module display_datapath #(
                 STEP_DRAW_BOSS: begin
                     rect_x0 = curr_b_x;     rect_y0 = curr_b_y;
                     rect_w  = BOSS_WIDTH;   rect_h  = BOSS_HEIGHT;
-                    rect_use_sprite = 1;   rect_sprite_base = BOSS_SPRITE_BASE;
+                    rect_use_picture = 1;   rect_picture_base = BOSS_PICTURE_BASE;
                 end
                 STEP_DRAW_P_BULLET_1: begin
                     rect_x0 = curr_p_bullet_x_1;   rect_y0 = curr_p_bullet_y_1;
@@ -441,7 +441,7 @@ module display_datapath #(
                 STEP_DRAW_PLAYER: begin
                     rect_x0 = curr_p_x;       rect_y0 = curr_p_y;
                     rect_w  = PLAYER_WIDTH;   rect_h  = PLAYER_HEIGHT;
-                    rect_use_sprite = 1;   rect_sprite_base = PLAYER_SPRITE_BASE;
+                    rect_use_picture = 1;   rect_picture_base = PLAYER_PICTURE_BASE;
                 end
 
                 // HP bars (full part width 0 when HP = 0, lost part width 0 when HP = MAX -> skipped)
@@ -494,9 +494,9 @@ module display #(
     parameter MAX_HP = 16,
     parameter HP_UNIT_W = 16,
     parameter BAR_H = 8,
-    // sprite ROM: player picture, then boss picture
-    parameter SPRITE_AW = 14,
-    parameter SPRITE_FILE = "MIF/sprites.hex"
+    // picture ROM: player picture, then boss picture
+    parameter PICTURE_AW = 14,
+    parameter PICTURE_FILE = "MIF/pictures.hex"
 )(
     input clk,
     input resetn,
@@ -539,11 +539,11 @@ module display #(
     wire [XW-1:0] rect_x0, rect_w; // datapath -> draw_rect
     wire [YW-1:0] rect_y0, rect_h;
     wire [CW-1:0] rect_colour;
-    wire rect_use_sprite;
-    wire [SPRITE_AW-1:0] rect_sprite_base;
+    wire rect_use_picture;
+    wire [PICTURE_AW-1:0] rect_picture_base;
     wire rect_done; // draw_rect -> control
-    wire [SPRITE_AW-1:0] sprite_addr; // draw_rect -> sprite ROM
-    wire [CW-1:0] sprite_colour; // sprite ROM -> draw_rect
+    wire [PICTURE_AW-1:0] picture_addr; // draw_rect -> picture ROM
+    wire [CW-1:0] picture_colour; // picture ROM -> draw_rect
 
     display_control u_control (
         .clk(clk), .resetn(resetn),
@@ -559,7 +559,7 @@ module display #(
         .BOSS_WIDTH(BOSS_WIDTH), .BOSS_HEIGHT(BOSS_HEIGHT),
         .BOSS_BULLET_WIDTH(BOSS_BULLET_WIDTH), .BOSS_BULLET_HEIGHT(BOSS_BULLET_HEIGHT),
         .HP_W(HP_W), .MAX_HP(MAX_HP), .HP_UNIT_W(HP_UNIT_W), .BAR_H(BAR_H),
-        .SPRITE_AW(SPRITE_AW)
+        .PICTURE_AW(PICTURE_AW)
     ) u_datapath (
         .clk(clk), .resetn(resetn),
         .clearing(clearing), .latch(latch), .next_step(next_step),
@@ -574,28 +574,28 @@ module display #(
         .p_hp(p_hp), .b_hp(b_hp),
         .is_last_step(is_last_step),
         .rect_x0(rect_x0), .rect_y0(rect_y0), .rect_w(rect_w), .rect_h(rect_h),
-        .rect_colour(rect_colour), .rect_use_sprite(rect_use_sprite),
-        .rect_sprite_base(rect_sprite_base)
+        .rect_colour(rect_colour), .rect_use_picture(rect_use_picture),
+        .rect_picture_base(rect_picture_base)
     );
 
-    // sprite ROM: player (PLAYER_WIDTH x PLAYER_HEIGHT words) then boss (BOSS_WIDTH x BOSS_HEIGHT words)
+    // picture ROM: player (PLAYER_WIDTH x PLAYER_HEIGHT words) then boss (BOSS_WIDTH x BOSS_HEIGHT words)
     image_rom #(
-        .AW(SPRITE_AW), .CW(CW),
+        .AW(PICTURE_AW), .CW(CW),
         .DEPTH(PLAYER_WIDTH * PLAYER_HEIGHT + BOSS_WIDTH * BOSS_HEIGHT),
-        .INIT_FILE(SPRITE_FILE)
-    ) u_sprite_rom (
-        .clk(clk), .address(sprite_addr), .colour(sprite_colour)
+        .INIT_FILE(PICTURE_FILE)
+    ) u_picture_rom (
+        .clk(clk), .address(picture_addr), .colour(picture_colour)
     );
 
     draw_rect #(
         .XW(XW), .YW(YW), .CW(CW),
         .SCREEN_WIDTH(SCREEN_WIDTH), .SCREEN_HEIGHT(SCREEN_HEIGHT),
-        .SPRITE_AW(SPRITE_AW)
+        .PICTURE_AW(PICTURE_AW)
     ) u_draw_rect (
         .clk(clk), .resetn(resetn), .start(rect_start),
         .x0(rect_x0), .y0(rect_y0), .w(rect_w), .h(rect_h), .colour_in(rect_colour),
-        .use_sprite(rect_use_sprite), .sprite_base(rect_sprite_base),
-        .sprite_colour(sprite_colour), .sprite_addr(sprite_addr),
+        .use_picture(rect_use_picture), .picture_base(rect_picture_base),
+        .picture_colour(picture_colour), .picture_addr(picture_addr),
         .plot(vga_plot), .x(vga_x), .y(vga_y), .colour(vga_colour), .done(rect_done)
     );
 

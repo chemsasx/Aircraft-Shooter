@@ -1,12 +1,3 @@
-// ============================================================================
-// hp_update.v  -  player HP and boss HP
-// ----------------------------------------------------------------------------
-//   reset / restart -> both HP = MAX_HP
-//   p_damage pulse  -> player HP - 1   (stops at 0)
-//   b_damage pulse  -> boss   HP - 1   (stops at 0)
-// ============================================================================
-
-
 // hp_counter : one HP register (down counter that stops at 0)
 module hp_counter #(
     parameter HP_W   = 5,                // bits for HP: 0..16 needs 5 bits

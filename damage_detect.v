@@ -1,27 +1,3 @@
-// ============================================================================
-// damage_detect.v  -  collisions between bullets and planes
-// ----------------------------------------------------------------------------
-//   player bullet 1..3  vs  boss    -> b_damage  + p_bullet_rest_1..3
-//   boss   bullet 1..3  vs  player  -> p_damage  + b_bullet_rest_1..3
-//
-// "rest" = remove that bullet. The names match the ports of Jianqi's
-// player_bullet (p_bullet_rest_i) and boss_bullet (b_bullet_rest_i).
-//
-// A hit is counted ONCE: only on the clock where "touching" goes 0 -> 1.
-// All outputs are 1-clock pulses.
-// If two bullets hit on the same clock, both bullets are removed but the
-// HP only goes down by 1 (very rare: bullets of a burst are 6 frames apart).
-//
-// Every (x, y) is the TOP-LEFT corner. Sizes come from top.v as parameters.
-// ============================================================================
-
-
-// ---------------------------------------------------------------------------
-// rect_overlap : do rectangle A and rectangle B overlap?  (AABB test)
-//   x ranges overlap:  a_x < b_x + B_W   and   b_x < a_x + A_W
-//   y ranges overlap:  a_y < b_y + B_H   and   b_y < a_y + A_H
-// strict "<": rectangles that only touch at an edge do NOT overlap
-// ---------------------------------------------------------------------------
 module rect_overlap #(
     parameter XW = 10,
     parameter YW = 9,
@@ -48,14 +24,12 @@ module rect_overlap #(
 
 endmodule
 
-
-// ---------------------------------------------------------------------------
 // hit_pulse : active && touching, then a rising-edge detector
-//   hit_now   = bullet is active AND overlaps the target
-//   hit_event = hit_now is 1 now but was 0 one clock ago  -> 1-clock pulse
+// hit_now   = bullet is active AND overlaps the target
+// hit_event = hit_now is 1 now but was 0 one clock ago  -> 1-clock pulse
 // (a bullet that already disappeared may still hold its old x, y,
 //  so "active" is checked first)
-// ---------------------------------------------------------------------------
+
 module hit_pulse (
     input  clk,
     input  resetn,
@@ -77,9 +51,6 @@ module hit_pulse (
 endmodule
 
 
-// ---------------------------------------------------------------------------
-// damage_detect
-// ---------------------------------------------------------------------------
 module damage_detect #(
     parameter XW = 10,
     parameter YW = 9,
@@ -111,13 +82,13 @@ module damage_detect #(
     input [YW-1:0] b_bullet_y_1, b_bullet_y_2, b_bullet_y_3,
     input          b_bullet_active_1, b_bullet_active_2, b_bullet_active_3,
 
-    output b_damage,                                            // -> hp_update: boss loses 1 HP
-    output p_bullet_rest_1, p_bullet_rest_2, p_bullet_rest_3,   // -> player_bullet: remove bullet i
-    output p_damage,                                            // -> hp_update: player loses 1 HP
-    output b_bullet_rest_1, b_bullet_rest_2, b_bullet_rest_3    // -> boss_bullet: remove bullet i
+    output b_damage,                                            // hp_update: boss loses 1 HP
+    output p_bullet_rest_1, p_bullet_rest_2, p_bullet_rest_3,   // player_bullet: remove bullet i
+    output p_damage,                                            // hp_update: player loses 1 HP
+    output b_bullet_rest_1, b_bullet_rest_2, b_bullet_rest_3    // boss_bullet: remove bullet i
 );
 
-    // ---------------- player bullets vs boss ----------------
+    // player bullets vs boss 
     wire p_bullet_touch_1, p_bullet_touch_2, p_bullet_touch_3;
 
     rect_overlap #(.XW(XW), .YW(YW),
@@ -146,7 +117,7 @@ module damage_detect #(
     // any player bullet hit the boss -> boss loses 1 HP
     assign b_damage = p_bullet_rest_1 || p_bullet_rest_2 || p_bullet_rest_3;
 
-    // ---------------- boss bullets vs player ----------------
+    // boss bullets vs player
     wire b_bullet_touch_1, b_bullet_touch_2, b_bullet_touch_3;
 
     rect_overlap #(.XW(XW), .YW(YW),

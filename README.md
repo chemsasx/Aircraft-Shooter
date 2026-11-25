@@ -23,8 +23,8 @@ written in Verilog, with a PS/2 mouse and 640x480 VGA output.
 | `hp_update.v` | hp_update | Player and boss HP counters |
 | `frame_tick.v` | frame_tick | 60 Hz frame pulse |
 | `display.v`, `draw_rect.v` | display, draw_rect | Erase and redraw every object once per frame, then the HP bars |
-| `image_rom.v` | image_rom | A picture in on-chip memory: the sprite ROM used by display |
-| `MIF/sprites.hex` | - | Player 37 x 66 then boss 112 x 117, 9-bit colours, `1c7` = transparent |
+| `image_rom.v` | image_rom | A picture in on-chip memory: the picture ROM used by display |
+| `MIF/pictures.hex` | - | Player 37 x 66 then boss 112 x 117, 9-bit colours, `1c7` = transparent |
 | `vga/` | vga_adapter | Course VGA adapter |
 
 ## Build

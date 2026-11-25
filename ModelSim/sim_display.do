@@ -14,9 +14,9 @@ add wave -radix unsigned /tb_display/dut/u_control/state
 add wave -radix unsigned /tb_display/dut/clearing /tb_display/dut/latch /tb_display/dut/rect_start /tb_display/dut/rect_done
 add wave -divider datapath
 add wave -radix unsigned /tb_display/dut/u_datapath/step
-add wave -radix unsigned /tb_display/dut/rect_x0 /tb_display/dut/rect_y0 /tb_display/dut/rect_w /tb_display/dut/rect_h /tb_display/dut/rect_use_sprite
-add wave -radix unsigned /tb_display/dut/sprite_addr
-add wave -radix hex      /tb_display/dut/sprite_colour
+add wave -radix unsigned /tb_display/dut/rect_x0 /tb_display/dut/rect_y0 /tb_display/dut/rect_w /tb_display/dut/rect_h /tb_display/dut/rect_use_picture
+add wave -radix unsigned /tb_display/dut/picture_addr
+add wave -radix hex      /tb_display/dut/picture_colour
 add wave -radix binary   /tb_display/dut/rect_colour
 add wave -divider to_vga
 add wave -radix unsigned /tb_display/vga_plot /tb_display/vga_x /tb_display/vga_y

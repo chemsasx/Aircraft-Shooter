@@ -7,7 +7,7 @@
 //
 // Read is synchronous: the colour of "address" appears ONE clock later.
 //
-// Used in display.v as the sprite ROM, file MIF/sprites.hex:
+// Used in display.v as the picture ROM, file MIF/pictures.hex:
 //   player 37 x 66   (words 0 .. 2441)
 //   boss   112 x 117 (words 2442 .. 15545)
 //   1c7 = TRANSPARENT (not drawn)
@@ -17,7 +17,7 @@ module image_rom #(
     parameter AW = 14,                         // address bits
     parameter CW = 9,                          // colour bits
     parameter DEPTH = 15546,                   // number of words
-    parameter INIT_FILE = "MIF/sprites.hex"
+    parameter INIT_FILE = "MIF/pictures.hex"
 )(
     input clk,
     input [AW-1:0] address,

@@ -12,11 +12,11 @@
 
 // to draw a w*h rectangle, takes w*h+2 clock
 
-// sprite mode (use_sprite = 1, used for the player and boss pictures):
-//   the colour of each pixel comes from the sprite ROM instead of colour_in.
-//   sprite_addr starts at sprite_base and counts +1 per pixel, in the same
+// picture mode (use_picture = 1, used for the player and boss pictures):
+//   the colour of each pixel comes from the picture ROM instead of colour_in.
+//   picture_addr starts at picture_base and counts +1 per pixel, in the same
 //   order the pixels are drawn (left to right, top to bottom), so pixel k of
-//   the rectangle reads ROM word sprite_base + k. w must equal the picture width.
+//   the rectangle reads ROM word picture_base + k. w must equal the picture width.
 //   Pixels with colour TRANSPARENT are not plotted (the background stays).
 // The ROM needs one clock to answer, so plot / x / y are delayed by one
 // register stage to line up with the ROM colour (for every rectangle).
@@ -73,8 +73,8 @@ module draw_rect_datapath #(
     parameter CW = 9, // colour bits {RRR,GGG,BBB}
     parameter SCREEN_WIDTH  = 640,
     parameter SCREEN_HEIGHT = 480,
-    parameter SPRITE_AW = 14, // sprite ROM address bits (15546 words < 16384)
-    parameter TRANSPARENT = 9'b111_000_111 // sprite colour that is not drawn
+    parameter PICTURE_AW = 14, // picture ROM address bits (15546 words < 16384)
+    parameter TRANSPARENT = 9'b111_000_111 // picture colour that is not drawn
 )(
     input clk,
     input resetn,
@@ -85,15 +85,15 @@ module draw_rect_datapath #(
     input [XW-1:0] w, // width  (number of columns)
     input [YW-1:0] h, // height (number of rows)
     input [CW-1:0] colour_in,
-    input use_sprite, // 1 = take the colour from the sprite ROM
-    input [SPRITE_AW-1:0] sprite_base, // first ROM word of the picture
-    input [CW-1:0] sprite_colour, // from the sprite ROM (one clock after sprite_addr)
+    input use_picture, // 1 = take the colour from the picture ROM
+    input [PICTURE_AW-1:0] picture_base, // first ROM word of the picture
+    input [CW-1:0] picture_colour, // from the picture ROM (one clock after picture_addr)
 
     output last_col, // to control
     output last_row, // to control
     output empty, // to control
 
-    output reg [SPRITE_AW-1:0] sprite_addr, // to the sprite ROM
+    output reg [PICTURE_AW-1:0] picture_addr, // to the picture ROM
     output plot, // to vga_adapter .write
     output reg [XW-1:0] x, // to vga_adapter .x
     output reg [YW-1:0] y, // to vga_adapter .y
@@ -103,7 +103,7 @@ module draw_rect_datapath #(
     reg [XW-1:0] x0_r, w_r;
     reg [YW-1:0] y0_r, h_r;
     reg [CW-1:0] colour_r;
-    reg use_sprite_r;
+    reg use_picture_r;
 
     reg [XW-1:0] cx; // current col
     reg [YW-1:0] cy; // current row
@@ -111,12 +111,12 @@ module draw_rect_datapath #(
     always @(posedge clk) begin
         if (!resetn) begin
         // initialize the parameters
-            x0_r <= 0;  y0_r <= 0;  w_r <= 0;  h_r <= 0;  colour_r <= 0;  use_sprite_r <= 0;
-            cx   <= 0;  cy   <= 0;  sprite_addr <= 0;
+            x0_r <= 0;  y0_r <= 0;  w_r <= 0;  h_r <= 0;  colour_r <= 0;  use_picture_r <= 0;
+            cx   <= 0;  cy   <= 0;  picture_addr <= 0;
         end
         else if (load) begin // load = 1, drawing a new rectangle is allowed
-            x0_r <= x0;  y0_r <= y0;  w_r <= w;  h_r <= h;  colour_r <= colour_in;  use_sprite_r <= use_sprite;
-            cx   <= 0;   cy   <= 0;   sprite_addr <= sprite_base;
+            x0_r <= x0;  y0_r <= y0;  w_r <= w;  h_r <= h;  colour_r <= colour_in;  use_picture_r <= use_picture;
+            cx   <= 0;   cy   <= 0;   picture_addr <= picture_base;
         end
         else if (draw_en) begin // draw one pixel per clock
         // left to right, top to bottom
@@ -127,7 +127,7 @@ module draw_rect_datapath #(
             end
             else
                 cx <= cx + 1'b1;
-            sprite_addr <= sprite_addr + 1'b1; // next pixel = next ROM word
+            picture_addr <= picture_addr + 1'b1; // next pixel = next ROM word
         end
     end
 
@@ -155,9 +155,9 @@ module draw_rect_datapath #(
         end
     end
 
-    wire transparent = use_sprite_r && (sprite_colour == TRANSPARENT); // comparator
+    wire transparent = use_picture_r && (picture_colour == TRANSPARENT); // comparator
 
-    assign colour = use_sprite_r ? sprite_colour : colour_r; // 2-to-1 MUX
+    assign colour = use_picture_r ? picture_colour : colour_r; // 2-to-1 MUX
 
     assign plot = plot_d && !transparent; // when plot = 1, this pixel is allowed to draw
 
@@ -170,7 +170,7 @@ module draw_rect #(
     parameter CW = 9,
     parameter SCREEN_WIDTH  = 640,
     parameter SCREEN_HEIGHT = 480,
-    parameter SPRITE_AW = 14
+    parameter PICTURE_AW = 14
 )(
     input clk,
     input resetn,
@@ -180,11 +180,11 @@ module draw_rect #(
     input [XW-1:0] w,
     input [YW-1:0] h,
     input [CW-1:0] colour_in,
-    input use_sprite,
-    input [SPRITE_AW-1:0] sprite_base,
-    input [CW-1:0] sprite_colour,
+    input use_picture,
+    input [PICTURE_AW-1:0] picture_base,
+    input [CW-1:0] picture_colour,
 
-    output [SPRITE_AW-1:0] sprite_addr,
+    output [PICTURE_AW-1:0] picture_addr,
     output plot,
     output [XW-1:0] x,
     output [YW-1:0] y,
@@ -205,13 +205,13 @@ module draw_rect #(
     draw_rect_datapath #(
         .XW(XW), .YW(YW), .CW(CW),
         .SCREEN_WIDTH(SCREEN_WIDTH), .SCREEN_HEIGHT(SCREEN_HEIGHT),
-        .SPRITE_AW(SPRITE_AW)
+        .PICTURE_AW(PICTURE_AW)
     ) u_datapath (
         .clk(clk), .resetn(resetn), .load(load), .draw_en(draw_en),
         .x0(x0), .y0(y0), .w(w), .h(h), .colour_in(colour_in),
-        .use_sprite(use_sprite), .sprite_base(sprite_base), .sprite_colour(sprite_colour),
+        .use_picture(use_picture), .picture_base(picture_base), .picture_colour(picture_colour),
         .last_col(last_col), .last_row(last_row), .empty(empty),
-        .sprite_addr(sprite_addr),
+        .picture_addr(picture_addr),
         .plot(plot), .x(x), .y(y), .colour(colour)
     );
 

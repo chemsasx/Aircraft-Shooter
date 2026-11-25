@@ -6,7 +6,7 @@
 //      boss bar at y = 4, player bar at y = 24 - 1 - 4 = 19
 //
 // Test pictures (small files in this folder):
-//   tb_sprites.hex : player 4 x 4 (words 0..15), then boss 4 x 2 (words 16..23)
+//   tb_pictures.hex : player 4 x 4 (words 0..15), then boss 4 x 2 (words 16..23)
 //        player  T W W T      boss  G G G G     T = 1c7 transparent (not drawn)
 //                W C C W            T G G T     W = 1ff white, C = 03f cyan
 //                W C C W                        G = 124 grey
@@ -67,7 +67,7 @@ module tb_display;
         .BOSS_WIDTH(4),            .BOSS_HEIGHT(2),
         .BOSS_BULLET_WIDTH(1),     .BOSS_BULLET_HEIGHT(2),
         .HP_W(2), .MAX_HP(2), .HP_UNIT_W(2), .BAR_H(1),
-        .SPRITE_AW(5), .SPRITE_FILE("tb_sprites.hex")              // 16 + 8 = 24 words
+        .PICTURE_AW(5), .PICTURE_FILE("tb_pictures.hex")              // 16 + 8 = 24 words
     ) dut (
         .clk(clk), .resetn(resetn), .frame_tick(frame_tick),
         .p_x(p_x), .p_y(p_y),
