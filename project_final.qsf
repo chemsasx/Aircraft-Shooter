@@ -44,7 +44,7 @@ set_global_assignment -name VERILOG_FILE boss_bullet.v
 set_global_assignment -name VERILOG_FILE damage_detect.v
 set_global_assignment -name VERILOG_FILE hp_update.v
 set_global_assignment -name VERILOG_FILE frame_tick.v
-set_global_assignment -name VERILOG_FILE player_sprite_rom.v
+set_global_assignment -name VERILOG_FILE image_rom.v
 set_global_assignment -name VERILOG_FILE draw_rect.v
 set_global_assignment -name VERILOG_FILE display.v
 set_global_assignment -name VERILOG_FILE top.v

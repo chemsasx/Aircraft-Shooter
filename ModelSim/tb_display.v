@@ -4,38 +4,47 @@
 //   MAX_HP = 2, each HP point = 2 px, bar height 1
 //   -> bars are 4 px wide, start at x = (32 - 4) / 2 = 14,
 //      boss bar at y = 4, player bar at y = 24 - 1 - 4 = 19
-// The player picture is a small 4 x 4 test picture, tb_player_4x4.hex:
-//      T W W T        T = 1c7 transparent (not drawn)
-//      W C C W        W = 1ff white
-//      W C C W        C = 03f cyan
-//      T W W T
-//   so drawing the player prints 12 pixels: the 4 corners are skipped.
+//
+// Test pictures (small files in this folder):
+//   tb_sprites.hex : player 4 x 4 (words 0..15), then boss 4 x 2 (words 16..23)
+//        player  T W W T      boss  G G G G     T = 1c7 transparent (not drawn)
+//                W C C W            T G G T     W = 1ff white, C = 03f cyan
+//                W C C W                        G = 124 grey
+//                T W W T
+//        -> the player prints 12 pixels, the boss prints 6 pixels
+//   tb_bg_8x6.hex  : background, one word per 4 x 4 block (8 x 6 words).
+//        word = block_row * 8 + block_col, so an ERASED pixel (x, y) has
+//        colour (y/4) * 8 + (x/4). Example: (5,10) -> 2*8 + 1 = 17 = 000010001
+//
 // frame_tick is given by hand (one 1-clock pulse per "frame").
 // Every pixel comes out of draw_rect one clock after it is counted
-// (the picture ROM needs one clock), so the last pixel of a rectangle
-// is printed in the same clock as "done".
+// (the ROMs need one clock), so the last pixel of a rectangle is printed
+// in the same clock as "done".
 // Only bullet 1 of each side is used, bullets 2 and 3 stay inactive.
 //
 // Colours in the Transcript:
-// 000000000 = black (erase)      000111111 = cyan / 111111111 = white (player picture)
-// 111111000 = yellow (p bullet)  111000111 = magenta (boss)
-// 111100000 = orange (b bullet)  111000000 = red     (boss HP left)
-// 000111000 = green (player HP)  010010010 = grey    (HP lost)
+// 111111111 = white, 000111111 = cyan (player)   100100100 = grey (boss)
+// 111111000 = yellow (p bullet)  111100000 = orange (b bullet)
+// 111000000 = red (boss HP left) 000111000 = green (player HP)  010010010 = grey (HP lost)
+// anything else while erasing = background word (y/4)*8 + (x/4)
 //
 // What should happen:
-//   after reset : the whole 32x24 screen is cleared (not printed, 768 pixels)
+//   after reset : the whole 32x24 screen is painted with the background (not printed)
 //   FRAME 1 : player at (5,10), boss at (20,8), both HP = 2
-//             -> erase old player (0,0) and old boss (0,0) (black),
-//                draw boss, draw player picture (12 px), boss bar 4 px red, player bar 4 px green
+//             -> erase old player (0,0) 4x4 and old boss (0,0) 4x2: colour 0 (block 0,0)
+//                draw boss (6 px), player (12 px), boss bar 4 px red, player bar 4 px green
 //   FRAME 2 : player moves to (6,10), player bullet at (7,5), boss bullet at (22,12)
-//             -> erase player (5,10), boss NOT erased (did not move),
+//             -> erase player at (5,10): colours 17, 18 (rows 10,11) and 25, 26 (rows 12,13)
+//                boss NOT erased (did not move)
 //                draw boss, p bullet (7,5)(7,6), b bullet (22,12)(22,13), player, bars
 //   FRAME 3 : boss moves to (21,8), p bullet to (7,4), b bullet to (22,14), boss HP = 1
-//             -> erase boss (20,8), erase both bullets at the old places,
+//             -> erase boss at (20,8): colour 21; erase p bullet (7,5)(7,6): colour 9;
+//                erase b bullet (22,12)(22,13): colour 29
 //                draw everything at the new places,
 //                boss bar = 2 px red (14,4)(15,4) + 2 px grey (16,4)(17,4)
 //   FRAME 4 : both bullets disappear, player HP = 1
-//             -> erase both bullets, draw boss and player again,
+//             -> erase p bullet (7,4)(7,5): colour 9; erase b bullet (22,14)(22,15): colour 29
+//                draw boss and player again,
 //                player bar = 2 px green (14,19)(15,19) + 2 px grey (16,19)(17,19)
 // ============================================================================
 `timescale 1ns / 1ns
@@ -55,7 +64,7 @@ module tb_display;
     wire [8:0] vga_y;
     wire [8:0] vga_colour;
 
-    // device under test, with a small screen and small objects
+    // device under test, with a small screen, small objects and small pictures
     display #(
         .SCREEN_WIDTH(32),         .SCREEN_HEIGHT(24),
         .PLAYER_WIDTH(4),          .PLAYER_HEIGHT(4),
@@ -63,7 +72,8 @@ module tb_display;
         .BOSS_WIDTH(4),            .BOSS_HEIGHT(2),
         .BOSS_BULLET_WIDTH(1),     .BOSS_BULLET_HEIGHT(2),
         .HP_W(2), .MAX_HP(2), .HP_UNIT_W(2), .BAR_H(1),
-        .SPRITE_AW(4), .PLAYER_SPRITE_FILE("tb_player_4x4.hex")   // 4 x 4 = 16 words
+        .SPRITE_AW(5), .SPRITE_FILE("tb_sprites.hex"),             // 16 + 8 = 24 words
+        .BG_AW(6), .BG_SHIFT(2), .BG_FILE("tb_bg_8x6.hex")         // 8 * 6 = 48 words
     ) dut (
         .clk(clk), .resetn(resetn), .frame_tick(frame_tick),
         .p_x(p_x), .p_y(p_y),

@@ -6,8 +6,10 @@
 // rect_start: begin to draw the rectangle
 // rect_wait: wait until rect_done = 1
 
-// current version draws: player (picture from player_sprite_rom), 3 player bullets,
-// boss, 3 boss bullets, boss HP bar (top) and player HP bar (bottom)
+// current version draws: player and boss (pictures from the sprite ROM),
+// 3 player bullets, 3 boss bullets, boss HP bar (top) and player HP bar (bottom).
+// Erasing and the first full-screen clear paint the space background back
+// (colours from the background ROM), not black.
 // sizes are parameters, passed down from top -> display -> datapath / draw_rect
 
 
@@ -79,7 +81,8 @@ module display_datapath #(
     parameter HP_W   = 5, // HP bits: 0..16
     parameter MAX_HP = 16,
     parameter HP_UNIT_W = 16, // bar pixels per HP point
-    parameter BAR_H = 8 // bar height
+    parameter BAR_H = 8, // bar height
+    parameter SPRITE_AW = 14 // sprite ROM address bits
 )(
     input clk,
     input resetn,
@@ -132,18 +135,25 @@ module display_datapath #(
     output reg [XW-1:0] rect_w,
     output reg [YW-1:0] rect_h,
     output reg [CW-1:0] rect_colour,
-    output reg rect_use_sprite // 1 = colour comes from the player picture ROM
+    output reg [1:0] rect_colour_mode, // where draw_rect takes the colour from
+    output reg [SPRITE_AW-1:0] rect_sprite_base // first sprite ROM word of the picture
 );
 
     // colours {RRR,GGG,BBB}
-    localparam BG_COLOUR = 9'b000_000_000;   // black
-    localparam PLAYER_COLOUR = 9'b000_111_111;   // cyan
     localparam P_BULLET_COLOUR = 9'b111_111_000;   // yellow
-    localparam BOSS_COLOUR = 9'b111_000_111;   // magenta
     localparam B_BULLET_COLOUR = 9'b111_100_000;   // orange
     localparam P_HP_COLOUR = 9'b000_111_000;   // green (player HP left)
     localparam B_HP_COLOUR = 9'b111_000_000;   // red   (boss HP left)
     localparam HP_LOST_COLOUR = 9'b010_010_010;   // dark grey (HP already lost)
+
+    // colour modes of draw_rect
+    localparam MODE_SOLID = 2'd0, // one colour: rect_colour
+               MODE_SPRITE = 2'd1, // picture from the sprite ROM
+               MODE_BACKGROUND = 2'd2; // space background from the background ROM
+
+    // where each picture starts in the sprite ROM (MIF/sprites.hex)
+    localparam PLAYER_SPRITE_BASE = 0;
+    localparam BOSS_SPRITE_BASE = PLAYER_WIDTH * PLAYER_HEIGHT; // boss words come after the player
 
     // HP bar geometry
     // each HP point = HP_UNIT_W (16) px, full bar = 16 * 16 = 256 px, centred: (640 - 256) / 2 = 192
@@ -353,16 +363,17 @@ module display_datapath #(
     // rectangle MUX
     // width 0 = "skip": draw_rect sees an empty rectangle and is done at once
     always @(*) begin
-        rect_x0 = 0;  rect_y0 = 0;  rect_w = 0;  rect_h = 0;  rect_colour = BG_COLOUR; // default value
-        rect_use_sprite = 0; // only the player uses the picture
+        rect_x0 = 0;  rect_y0 = 0;  rect_w = 0;  rect_h = 0;  rect_colour = 0; // default value
+        rect_colour_mode = MODE_BACKGROUND; // default: paint the background (clear and erase)
+        rect_sprite_base = 0;
 
-        if (clearing) begin // clearing = 1, clear the whole screen using one black block
+        if (clearing) begin // clearing = 1, paint the whole screen with the background
             rect_w = SCREEN_WIDTH;
             rect_h = SCREEN_HEIGHT;
         end
         else begin
             case (step)
-                // erase old images, replacing them with background colour
+                // erase old images, painting the background back (default mode)
                 STEP_ERASE_PLAYER: begin
                     rect_x0 = prev_p_x;   rect_y0 = prev_p_y;
                     // moved - width needed to be erased is PLAYER_WIDTH, else 0
@@ -401,65 +412,64 @@ module display_datapath #(
                 STEP_DRAW_BOSS: begin
                     rect_x0 = curr_b_x;     rect_y0 = curr_b_y;
                     rect_w  = BOSS_WIDTH;   rect_h  = BOSS_HEIGHT;
-                    rect_colour = BOSS_COLOUR;
+                    rect_colour_mode = MODE_SPRITE;   rect_sprite_base = BOSS_SPRITE_BASE;
                 end
                 STEP_DRAW_P_BULLET_1: begin
                     rect_x0 = curr_p_bullet_x_1;   rect_y0 = curr_p_bullet_y_1;
                     rect_w  = curr_p_bullet_active_1 ? PLAYER_BULLET_WIDTH : 0;   rect_h = PLAYER_BULLET_HEIGHT;
-                    rect_colour = P_BULLET_COLOUR;
+                    rect_colour = P_BULLET_COLOUR;   rect_colour_mode = MODE_SOLID;
                 end
                 STEP_DRAW_P_BULLET_2: begin
                     rect_x0 = curr_p_bullet_x_2;   rect_y0 = curr_p_bullet_y_2;
                     rect_w  = curr_p_bullet_active_2 ? PLAYER_BULLET_WIDTH : 0;   rect_h = PLAYER_BULLET_HEIGHT;
-                    rect_colour = P_BULLET_COLOUR;
+                    rect_colour = P_BULLET_COLOUR;   rect_colour_mode = MODE_SOLID;
                 end
                 STEP_DRAW_P_BULLET_3: begin
                     rect_x0 = curr_p_bullet_x_3;   rect_y0 = curr_p_bullet_y_3;
                     rect_w  = curr_p_bullet_active_3 ? PLAYER_BULLET_WIDTH : 0;   rect_h = PLAYER_BULLET_HEIGHT;
-                    rect_colour = P_BULLET_COLOUR;
+                    rect_colour = P_BULLET_COLOUR;   rect_colour_mode = MODE_SOLID;
                 end
                 STEP_DRAW_B_BULLET_1: begin
                     rect_x0 = curr_b_bullet_x_1;   rect_y0 = curr_b_bullet_y_1;
                     rect_w  = curr_b_bullet_active_1 ? BOSS_BULLET_WIDTH : 0;   rect_h = BOSS_BULLET_HEIGHT;
-                    rect_colour = B_BULLET_COLOUR;
+                    rect_colour = B_BULLET_COLOUR;   rect_colour_mode = MODE_SOLID;
                 end
                 STEP_DRAW_B_BULLET_2: begin
                     rect_x0 = curr_b_bullet_x_2;   rect_y0 = curr_b_bullet_y_2;
                     rect_w  = curr_b_bullet_active_2 ? BOSS_BULLET_WIDTH : 0;   rect_h = BOSS_BULLET_HEIGHT;
-                    rect_colour = B_BULLET_COLOUR;
+                    rect_colour = B_BULLET_COLOUR;   rect_colour_mode = MODE_SOLID;
                 end
                 STEP_DRAW_B_BULLET_3: begin
                     rect_x0 = curr_b_bullet_x_3;   rect_y0 = curr_b_bullet_y_3;
                     rect_w  = curr_b_bullet_active_3 ? BOSS_BULLET_WIDTH : 0;   rect_h = BOSS_BULLET_HEIGHT;
-                    rect_colour = B_BULLET_COLOUR;
+                    rect_colour = B_BULLET_COLOUR;   rect_colour_mode = MODE_SOLID;
                 end
                 STEP_DRAW_PLAYER: begin
                     rect_x0 = curr_p_x;       rect_y0 = curr_p_y;
                     rect_w  = PLAYER_WIDTH;   rect_h  = PLAYER_HEIGHT;
-                    rect_colour = PLAYER_COLOUR; // not used: the colours come from the picture
-                    rect_use_sprite = 1;
+                    rect_colour_mode = MODE_SPRITE;   rect_sprite_base = PLAYER_SPRITE_BASE;
                 end
 
                 // HP bars (full part width 0 when HP = 0, lost part width 0 when HP = MAX -> skipped)
                 STEP_B_BAR_FULL: begin
                     rect_x0 = BAR_X;          rect_y0 = BOSS_BAR_Y;
                     rect_w  = b_bar_full_w;   rect_h  = BAR_H;
-                    rect_colour = B_HP_COLOUR;
+                    rect_colour = B_HP_COLOUR;      rect_colour_mode = MODE_SOLID;
                 end
                 STEP_B_BAR_LOST: begin
                     rect_x0 = b_bar_lost_x0;  rect_y0 = BOSS_BAR_Y;
                     rect_w  = b_bar_lost_w;   rect_h  = BAR_H;
-                    rect_colour = HP_LOST_COLOUR;
+                    rect_colour = HP_LOST_COLOUR;   rect_colour_mode = MODE_SOLID;
                 end
                 STEP_P_BAR_FULL: begin
                     rect_x0 = BAR_X;          rect_y0 = PLAYER_BAR_Y;
                     rect_w  = p_bar_full_w;   rect_h  = BAR_H;
-                    rect_colour = P_HP_COLOUR;
+                    rect_colour = P_HP_COLOUR;      rect_colour_mode = MODE_SOLID;
                 end
                 STEP_P_BAR_LOST: begin
                     rect_x0 = p_bar_lost_x0;  rect_y0 = PLAYER_BAR_Y;
                     rect_w  = p_bar_lost_w;   rect_h  = BAR_H;
-                    rect_colour = HP_LOST_COLOUR;
+                    rect_colour = HP_LOST_COLOUR;   rect_colour_mode = MODE_SOLID;
                 end
 
                 default: ; // keep the "empty" defaults
@@ -490,9 +500,13 @@ module display #(
     parameter MAX_HP = 16,
     parameter HP_UNIT_W = 16,
     parameter BAR_H = 8,
-    // player picture: PLAYER_WIDTH x PLAYER_HEIGHT words in the ROM
-    parameter SPRITE_AW = 12,
-    parameter PLAYER_SPRITE_FILE = "MIF/player_37x66.hex"
+    // sprite ROM: player picture, then boss picture
+    parameter SPRITE_AW = 14,
+    parameter SPRITE_FILE = "MIF/sprites.hex",
+    // background ROM: the background at 1 / 2^BG_SHIFT size
+    parameter BG_AW = 15,
+    parameter BG_SHIFT = 2,
+    parameter BG_FILE = "MIF/space_bg_160x120.hex"
 )(
     input clk,
     input resetn,
@@ -535,10 +549,13 @@ module display #(
     wire [XW-1:0] rect_x0, rect_w; // datapath -> draw_rect
     wire [YW-1:0] rect_y0, rect_h;
     wire [CW-1:0] rect_colour;
-    wire rect_use_sprite;
+    wire [1:0] rect_colour_mode;
+    wire [SPRITE_AW-1:0] rect_sprite_base;
     wire rect_done; // draw_rect -> control
-    wire [SPRITE_AW-1:0] sprite_addr; // draw_rect -> player_sprite_rom
-    wire [CW-1:0] sprite_colour; // player_sprite_rom -> draw_rect
+    wire [SPRITE_AW-1:0] sprite_addr; // draw_rect -> sprite ROM
+    wire [CW-1:0] sprite_colour; // sprite ROM -> draw_rect
+    wire [BG_AW-1:0] bg_addr; // draw_rect -> background ROM
+    wire [CW-1:0] bg_colour; // background ROM -> draw_rect
 
     display_control u_control (
         .clk(clk), .resetn(resetn),
@@ -553,7 +570,8 @@ module display #(
         .PLAYER_BULLET_WIDTH(PLAYER_BULLET_WIDTH), .PLAYER_BULLET_HEIGHT(PLAYER_BULLET_HEIGHT),
         .BOSS_WIDTH(BOSS_WIDTH), .BOSS_HEIGHT(BOSS_HEIGHT),
         .BOSS_BULLET_WIDTH(BOSS_BULLET_WIDTH), .BOSS_BULLET_HEIGHT(BOSS_BULLET_HEIGHT),
-        .HP_W(HP_W), .MAX_HP(MAX_HP), .HP_UNIT_W(HP_UNIT_W), .BAR_H(BAR_H)
+        .HP_W(HP_W), .MAX_HP(MAX_HP), .HP_UNIT_W(HP_UNIT_W), .BAR_H(BAR_H),
+        .SPRITE_AW(SPRITE_AW)
     ) u_datapath (
         .clk(clk), .resetn(resetn),
         .clearing(clearing), .latch(latch), .next_step(next_step),
@@ -568,25 +586,38 @@ module display #(
         .p_hp(p_hp), .b_hp(b_hp),
         .is_last_step(is_last_step),
         .rect_x0(rect_x0), .rect_y0(rect_y0), .rect_w(rect_w), .rect_h(rect_h),
-        .rect_colour(rect_colour), .rect_use_sprite(rect_use_sprite)
+        .rect_colour(rect_colour), .rect_colour_mode(rect_colour_mode),
+        .rect_sprite_base(rect_sprite_base)
     );
 
-    player_sprite_rom #(
+    // sprite ROM: player (PLAYER_WIDTH x PLAYER_HEIGHT words) then boss (BOSS_WIDTH x BOSS_HEIGHT words)
+    image_rom #(
         .AW(SPRITE_AW), .CW(CW),
-        .DEPTH(PLAYER_WIDTH * PLAYER_HEIGHT),
-        .INIT_FILE(PLAYER_SPRITE_FILE)
-    ) u_player_sprite (
+        .DEPTH(PLAYER_WIDTH * PLAYER_HEIGHT + BOSS_WIDTH * BOSS_HEIGHT),
+        .INIT_FILE(SPRITE_FILE)
+    ) u_sprite_rom (
         .clk(clk), .address(sprite_addr), .colour(sprite_colour)
+    );
+
+    // background ROM: one word per 4 x 4 block of the screen (160 x 120 words)
+    image_rom #(
+        .AW(BG_AW), .CW(CW),
+        .DEPTH((SCREEN_WIDTH >> BG_SHIFT) * (SCREEN_HEIGHT >> BG_SHIFT)),
+        .INIT_FILE(BG_FILE)
+    ) u_background_rom (
+        .clk(clk), .address(bg_addr), .colour(bg_colour)
     );
 
     draw_rect #(
         .XW(XW), .YW(YW), .CW(CW),
         .SCREEN_WIDTH(SCREEN_WIDTH), .SCREEN_HEIGHT(SCREEN_HEIGHT),
-        .SPRITE_AW(SPRITE_AW)
+        .SPRITE_AW(SPRITE_AW), .BG_AW(BG_AW), .BG_SHIFT(BG_SHIFT)
     ) u_draw_rect (
         .clk(clk), .resetn(resetn), .start(rect_start),
         .x0(rect_x0), .y0(rect_y0), .w(rect_w), .h(rect_h), .colour_in(rect_colour),
-        .use_sprite(rect_use_sprite), .sprite_colour(sprite_colour), .sprite_addr(sprite_addr),
+        .colour_mode(rect_colour_mode), .sprite_base(rect_sprite_base),
+        .sprite_colour(sprite_colour), .bg_colour(bg_colour),
+        .sprite_addr(sprite_addr), .bg_addr(bg_addr),
         .plot(vga_plot), .x(vga_x), .y(vga_y), .colour(vga_colour), .done(rect_done)
     );
 
