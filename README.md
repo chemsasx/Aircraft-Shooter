@@ -23,16 +23,9 @@ written in Verilog, with a PS/2 mouse and 640x480 VGA output.
 | `hp_update.v` | hp_update | Player and boss HP counters |
 | `frame_tick.v` | frame_tick | 60 Hz frame pulse |
 | `display.v`, `draw_rect.v` | display, draw_rect | Erase and redraw every object once per frame, then the HP bars |
-| `image_rom.v` | image_rom | A picture in on-chip memory, used twice by display (sprite ROM and background ROM) |
+| `image_rom.v` | image_rom | A picture in on-chip memory: the sprite ROM used by display |
 | `MIF/sprites.hex` | - | Player 37 x 66 then boss 112 x 117, 9-bit colours, `1c7` = transparent |
-| `MIF/space_bg_160x120.hex` | - | Space background at 1/4 size; erasing paints it back (screen pixel (x, y) uses word (y/4)*160 + x/4) |
-| `MIF/space_bg_640_9.mif` | - | The same background at full size, loaded into the VGA memory when the FPGA is programmed |
 | `vga/` | vga_adapter | Course VGA adapter |
-
-## Why the background is stored at 1/4 size
-The VGA frame buffer (640 x 480 x 9 bits) already uses most of the M10K memory on the
-Cyclone V, so a second full-size copy of the background does not fit. A 160 x 120 copy
-(about 20 M10K blocks) does, and it is used both to clear the screen and to erase objects.
 
 ## Build
 Open `project_final.qpf` in Quartus, compile, and program the `.sof` to the DE1-SoC (5CSEMA5F31).

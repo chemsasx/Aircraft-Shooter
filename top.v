@@ -297,7 +297,7 @@ display #(
 vga_adapter #(
     .RESOLUTION("640x480"),
     .COLOR_DEPTH(CW),
-    .BACKGROUND_IMAGE("./MIF/space_bg_640_9.mif") // same picture the background ROM gives
+    .BACKGROUND_IMAGE("./MIF/black_640_9.mif")
 ) VGA (
     .resetn(resetn),
     .clock(CLOCK_50),

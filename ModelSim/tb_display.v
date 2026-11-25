@@ -12,9 +12,6 @@
 //                W C C W                        G = 124 grey
 //                T W W T
 //        -> the player prints 12 pixels, the boss prints 6 pixels
-//   tb_bg_8x6.hex  : background, one word per 4 x 4 block (8 x 6 words).
-//        word = block_row * 8 + block_col, so an ERASED pixel (x, y) has
-//        colour (y/4) * 8 + (x/4). Example: (5,10) -> 2*8 + 1 = 17 = 000010001
 //
 // frame_tick is given by hand (one 1-clock pulse per "frame").
 // Every pixel comes out of draw_rect one clock after it is counted
@@ -26,24 +23,22 @@
 // 111111111 = white, 000111111 = cyan (player)   100100100 = grey (boss)
 // 111111000 = yellow (p bullet)  111100000 = orange (b bullet)
 // 111000000 = red (boss HP left) 000111000 = green (player HP)  010010010 = grey (HP lost)
-// anything else while erasing = background word (y/4)*8 + (x/4)
+// 000000000 = black (erase)
 //
 // What should happen:
-//   after reset : the whole 32x24 screen is painted with the background (not printed)
+//   after reset : the whole 32x24 screen is cleared to black (not printed, 768 pixels)
 //   FRAME 1 : player at (5,10), boss at (20,8), both HP = 2
-//             -> erase old player (0,0) 4x4 and old boss (0,0) 4x2: colour 0 (block 0,0)
+//             -> erase old player (0,0) 4x4 and old boss (0,0) 4x2 (black)
 //                draw boss (6 px), player (12 px), boss bar 4 px red, player bar 4 px green
 //   FRAME 2 : player moves to (6,10), player bullet at (7,5), boss bullet at (22,12)
-//             -> erase player at (5,10): colours 17, 18 (rows 10,11) and 25, 26 (rows 12,13)
-//                boss NOT erased (did not move)
+//             -> erase player at (5,10) (black), boss NOT erased (did not move)
 //                draw boss, p bullet (7,5)(7,6), b bullet (22,12)(22,13), player, bars
 //   FRAME 3 : boss moves to (21,8), p bullet to (7,4), b bullet to (22,14), boss HP = 1
-//             -> erase boss at (20,8): colour 21; erase p bullet (7,5)(7,6): colour 9;
-//                erase b bullet (22,12)(22,13): colour 29
+//             -> erase boss at (20,8), p bullet (7,5)(7,6), b bullet (22,12)(22,13) (black)
 //                draw everything at the new places,
 //                boss bar = 2 px red (14,4)(15,4) + 2 px grey (16,4)(17,4)
 //   FRAME 4 : both bullets disappear, player HP = 1
-//             -> erase p bullet (7,4)(7,5): colour 9; erase b bullet (22,14)(22,15): colour 29
+//             -> erase p bullet (7,4)(7,5) and b bullet (22,14)(22,15) (black)
 //                draw boss and player again,
 //                player bar = 2 px green (14,19)(15,19) + 2 px grey (16,19)(17,19)
 // ============================================================================
@@ -72,8 +67,7 @@ module tb_display;
         .BOSS_WIDTH(4),            .BOSS_HEIGHT(2),
         .BOSS_BULLET_WIDTH(1),     .BOSS_BULLET_HEIGHT(2),
         .HP_W(2), .MAX_HP(2), .HP_UNIT_W(2), .BAR_H(1),
-        .SPRITE_AW(5), .SPRITE_FILE("tb_sprites.hex"),             // 16 + 8 = 24 words
-        .BG_AW(6), .BG_SHIFT(2), .BG_FILE("tb_bg_8x6.hex")         // 8 * 6 = 48 words
+        .SPRITE_AW(5), .SPRITE_FILE("tb_sprites.hex")              // 16 + 8 = 24 words
     ) dut (
         .clk(clk), .resetn(resetn), .frame_tick(frame_tick),
         .p_x(p_x), .p_y(p_y),

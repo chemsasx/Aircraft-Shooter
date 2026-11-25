@@ -7,11 +7,10 @@
 //
 // Read is synchronous: the colour of "address" appears ONE clock later.
 //
-// Used twice in display.v:
-//   sprite ROM     : MIF/sprites.hex          player 37 x 66 (words 0 .. 2441)
-//                                             then boss 112 x 117 (words 2442 .. 15545)
-//                    1c7 = TRANSPARENT (not drawn)
-//   background ROM : MIF/space_bg_160x120.hex one word per 4 x 4 block of the screen
+// Used in display.v as the sprite ROM, file MIF/sprites.hex:
+//   player 37 x 66   (words 0 .. 2441)
+//   boss   112 x 117 (words 2442 .. 15545)
+//   1c7 = TRANSPARENT (not drawn)
 // (MIF/*_preview.png show what the pictures look like.)
 // ============================================================================
 module image_rom #(
